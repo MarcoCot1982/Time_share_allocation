@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Time Allocation Calculator</title>
+    <style>
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: url('https://media.istockphoto.com/id/1153032746/photo/close-up-of-calendar-and-clock-on-the-table-planning-for-business-meeting-or-travel-planning.jpg?s=612x612&w=0&k=20&c=ZZyPQ0Ywl2p93YyZ36mLj4aOKY3IcRyMjTt3qNnXMCE=') no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+      .container {
+        background-color: rgb(99, 222, 191);
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+      label {
+        font-size: 14px;
+        color: #555;
+      }
+      input, select, button {
+        width: 100%;
+        padding: 8px;
+        margin: 8px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      input[type="number"] {
+        text-align: right;
+      }
+      button {
+        background-color: rgb(207, 204, 202);
+        color: black;
+        font-size: 16px;
+        cursor: pointer;
+        border: 1px solid #070707;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      .account-row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .account-row input {
+        width: 48%;
+      }
+      .error {
+        color: red;
+        font-size: 14px;
+        text-align: center;
+        margin-top: 20px;
+      }
+      
+      /* Framed results styling */
+      #results {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: white;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .result-item {
+        margin-bottom: 10px;
+      }
+    </style>
+    <script>
+      let rowsCount = 1;
+      const maxRows = 10;
+
+      function showNextRow(index) {
+        const nextRow = document.getElementById(`row-${index}`);
+        if (nextRow) {
+          nextRow.style.display = "flex";
+        }
+      }
+
+      function calculate() {
+        let hoursPerDay = document.getElementById("hours").value;
+        let inputs = document.querySelectorAll(".account-row");
+        let results = document.getElementById("results");
+        results.innerHTML = "";
+
+        let percentages = [];
+        let totalPercentage = 0;
+
+        inputs.forEach((row, index) => {
+          let account = row.querySelector(".account-name").value;
+          let percentage = parseFloat(row.querySelector(".percentage").value) || 0;
+          if (account) {
+            totalPercentage += percentage;
+            percentages.push({ account, percentage });
+          }
+        });
+
+        if (totalPercentage !== 100) {
+          results.innerHTML = "<div class='error'>Total percentage must be 100%.</div>";
+          return;
+        }
+
+        google.script.run.withSuccessHandler(showResults).calculateHours(hoursPerDay, percentages);
+      }
+
+      function showResults(data) {
+        let results = document.getElementById("results");
+        results.innerHTML = "<h3>Results:</h3>";
+
+        data.forEach(item => {
+          if (item.account && item.hours) {
+            let div = document.createElement("div");
+            div.classList.add("result-item");
+            div.innerHTML = `<strong>${item.hours} hours</strong> - ${item.account}`;
+            results.appendChild(div);
+          }
+        });
+      }
+
+      function handleInputChange(index) {
+        const accountName = document.getElementById(`account-name-${index}`).value;
+        const percentageField = document.getElementById(`percentage-${index}`);
+
+        if (accountName) {
+          if (index === 1) {
+            // First row gets 100% by default if empty
+            if (!percentageField.value) {
+              percentageField.value = 100;
+            }
+          } else {
+            let totalPercent = 0;
+            for (let i = 1; i < index; i++) {
+              totalPercent += parseFloat(document.getElementById(`percentage-${i}`).value) || 0;
+            }
+            let remainingPercent = 100 - totalPercent;
+
+            // Set remaining percentage only if field is empty
+            if (!percentageField.value) {
+              percentageField.value = remainingPercent;
+            }
+          }
+
+          // Show the next row if available
+          if (index < maxRows) {
+            showNextRow(index + 1);
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Time Allocation Calculator</h2>
+      <label for="hours">Total hours per day:</label>
+      <select id="hours">
+        <option value="8">8</option>
+        <option value="7">7</option>
+        <option value="6">6</option>
+        <option value="5">5</option>
+        <option value="4">4</option>
+      </select>
+
+      <div id="account-rows">
+        <!-- First row (always visible) -->
+        <div id="row-1" class="account-row" style="display: flex;">
+          <input type="text" id="account-name-1" class="account-name" placeholder="Account Name" oninput="handleInputChange(1)">
+          <input type="number" id="percentage-1" class="percentage" placeholder="%" oninput="handleInputChange(1)">
+        </div>
+
+        <!-- Additional rows (hidden initially) -->
+        <div id="row-2" class="account-row" style="display: none;">
+          <input type="text" id="account-name-2" class="account-name" placeholder="Account Name" oninput="handleInputChange(2)">
+          <input type="number" id="percentage-2" class="percentage" placeholder="%" oninput="handleInputChange(2)">
+        </div>
+        <div id="row-3" class="account-row" style="display: none;">
+          <input type="text" id="account-name-3" class="account-name" placeholder="Account Name" oninput="handleInputChange(3)">
+          <input type="number" id="percentage-3" class="percentage" placeholder="%" oninput="handleInputChange(3)">
+        </div>
+        <div id="row-4" class="account-row" style="display: none;">
+          <input type="text" id="account-name-4" class="account-name" placeholder="Account Name" oninput="handleInputChange(4)">
+          <input type="number" id="percentage-4" class="percentage" placeholder="%" oninput="handleInputChange(4)">
+        </div>
+      </div>
+
+      <button onclick="calculate()">CALCULATE</button>
+      <div id="results"></div>
+
+      <footer style="font-size: 12px; color: grey; text-align: center; margin-top: 20px;">
+         by Marco Cot, 2025 <br> <br> Disclaimer: this is not a corporate app <br> Use for guidance only
+      </footer>
+    </div>
+  </body>
+</html>
